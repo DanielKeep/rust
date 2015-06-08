@@ -444,6 +444,16 @@ pub fn phase_2_configure_and_expand(sess: &Session,
         }
     });
 
+    for (name, &(ref loc, ref api)) in &sess.opts.extern_macros {
+        let em = ::extern_macro::ExternMacro::new(
+            name.clone(), loc.clone(), api.as_ref().map(|s| &**s));
+        let em = match em {
+            Ok(em) => em,
+            Err(err) => sess.fatal(&format!("invalid external macro: {}", err))
+        };
+        ::extern_macro::register_extern_macro(&mut registry, em);
+    }
+
     let Registry { syntax_exts, lint_passes, lint_groups,
                    llvm_passes, attributes, .. } = registry;
 

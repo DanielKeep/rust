@@ -110,6 +110,7 @@ pub struct Options {
     pub color: ColorConfig,
     pub show_span: Option<String>,
     pub externs: HashMap<String, Vec<String>>,
+    pub extern_macros: HashMap<String, (String, Option<String>)>,
     pub crate_name: Option<String>,
     /// An optional name to use as the crate for std during std injection,
     /// written `extern crate std = "name"`. Default to "std". Used by
@@ -235,6 +236,7 @@ pub fn basic_options() -> Options {
         color: Auto,
         show_span: None,
         externs: HashMap::new(),
+        extern_macros: HashMap::new(),
         crate_name: None,
         alt_std_name: None,
         libs: Vec::new(),
@@ -842,6 +844,9 @@ pub fn rustc_optgroups() -> Vec<RustcOptGroup> {
                       `everybody_loops` (all function bodies replaced with `loop {}`).",
                      "TYPE"),
         opt::opt_u("", "show-span", "Show spans for compiler debugging", "expr|pat|ty"),
+        opt::multi("", "extern-macro",
+            "Specify where an external macro is located",
+            "NAME=PATH"),
     ]);
     opts
 }
@@ -1029,6 +1034,28 @@ pub fn build_session_options(matches: &getopts::Matches) -> Options {
         externs.entry(name.to_string()).or_insert(vec![]).push(location.to_string());
     }
 
+    let mut extern_macros = HashMap::new();
+    for arg in &matches.opt_strs("extern-macro") {
+        let mut parts = arg.splitn(2, '=');
+        let mut name_api = match parts.next() {
+            Some(s) => s.splitn(2, ','),
+            None => early_error("--extern-macro value must not be empty"),
+        };
+        let name = match name_api.next() {
+            Some(s) => s,
+            None => early_error("--extern-macro value must not be empty"),
+        };
+        let api = name_api.next();
+        let location = match parts.next() {
+            Some(s) => s,
+            None => early_error("--extern-macro value must be of the format \
+                                 `name[,api]=path`"),
+        };
+
+        let em = (location.to_string(), api.map(|s| s.to_string()));
+        extern_macros.insert(name.to_string(), em);
+    }
+
     let crate_name = matches.opt_str("crate-name");
 
     Options {
@@ -1055,6 +1082,7 @@ pub fn build_session_options(matches: &getopts::Matches) -> Options {
         color: color,
         show_span: None,
         externs: externs,
+        extern_macros: extern_macros,
         crate_name: crate_name,
         alt_std_name: None,
         libs: libs,

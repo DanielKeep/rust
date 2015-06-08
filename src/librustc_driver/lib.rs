@@ -34,6 +34,8 @@
 #![feature(staged_api)]
 #![feature(exit_status)]
 #![feature(set_stdio)]
+#![feature(core)]
+#![feature(unboxed_closures)]
 
 extern crate arena;
 extern crate flate;
@@ -87,6 +89,7 @@ use syntax::diagnostics;
 #[cfg(test)]
 pub mod test;
 
+pub mod extern_macro;
 pub mod driver;
 pub mod pretty;
 
