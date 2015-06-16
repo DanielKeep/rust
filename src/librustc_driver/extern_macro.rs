@@ -1,4 +1,3 @@
-
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
 
@@ -73,11 +72,17 @@ impl ExternMacro {
             };
         }
 
+        let span_str = {
+            use syntax::codemap::Pos;
+            format!("{},{},{}", sp.lo.to_usize(), sp.hi.to_usize(), sp.expn_id.into_u32())
+        };
+
         let emp = Command::new(&self.path)
             .arg(&self.name)
             .env("RUST_MACRO_NAME", &self.name)
             .env("RUST_MACRO_API", self.api.to_str())
             .env("RUST_VERSION", option_env!("CFG_VERSION").unwrap_or("unknown"))
+            .env("RUST_SPAN", &span_str)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .spawn();
@@ -147,6 +152,53 @@ impl MacroApi {
         use self::MacroApi::*;
         match *self {
             Text => "text",
+        }
+    }
+}
+
+pub fn tts_to_json(tts: &[ast::TokenTree]) -> serialize::json::Json {
+    use std::collections::BTreeMap;
+    use serialize::json::{self, Json};
+    use syntax::ast::TokenTree::*;
+
+    macro_rules! jo {
+        ($($k:expr, $v:expr),* $(,)*) => (
+            {
+                let mut map = BTreeMap::new();
+                $(map.insert($k.into(), $v.into());)*
+                Json::Object(map)
+            }
+        );
+    }
+
+    fn sp_to_json(sp: &Span) -> Json {
+        Json::String(format!("{},{},{}",
+            sp.lo.to_usize(), sp.hi.to_usize(), sp.expn_id.into_u32()))
+    }
+
+    fn tok_to_json(tok: &token::Token) -> Json {
+        use self::token::Token::*;
+
+        macro_rules! lit_tok {
+            ($s:expr) => (Json::String($s.into()));
+        }
+
+        match *tok {
+            Eq => lit_tok!("="),
+            Lt => lit_tok!("<"),
+            Le => lit_tok!("<="),
+            EqEq => lit_tok!("=="),
+            Ne => lit_tok!("!="),
+            Ge => lit_tok!(">="),
+            Gt => lit_tok!(">"),
+            LASTEDIT
+        }
+    }
+
+    let mut arr = vec![];
+    for tt in tts {
+        match *tt {
+            TtToken(ref sp, ref tok) => {}
         }
     }
 }
