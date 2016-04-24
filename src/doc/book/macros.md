@@ -475,12 +475,14 @@ which syntactic form it matches.
 * `item`: an [item][item]. Examples: `fn foo() { }`; `struct Bar;`.
 * `meta`: a "meta item", as found in attributes. Example: `cfg(target_os = "windows")`.
 * `tt`: a single token tree.
+* `vis`: a visibility qualifier. Examples: nothing (default visibility); `pub`.
 
 There are additional rules regarding the next token after a metavariable:
 
 * `expr` and `stmt` variables may only be followed by one of: `=> , ;`
 * `ty` and `path` variables may only be followed by one of: `=> , = | ; : > [ { as where`
 * `pat` variables may only be followed by one of: `=> , = | if in`
+* `vis` variables may only be followed by an identifier or `,`.
 * Other variables may be followed by any token.
 
 These rules provide some flexibility for Rust’s syntax to evolve without

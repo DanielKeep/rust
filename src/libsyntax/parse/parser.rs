@@ -5287,9 +5287,21 @@ impl<'a> Parser<'a> {
         self.parse_single_struct_field(vis, attrs)
     }
 
-    fn parse_visibility(&mut self, allow_restricted: bool) -> PResult<'a, Visibility> {
+    pub fn parse_visibility(&mut self, allow_restricted: bool) -> PResult<'a, Visibility> {
         if !self.eat_keyword(keywords::Pub) {
-            Ok(Visibility::Inherited)
+            if let token::Interpolated(token::NtVis(vis)) = self.token.clone() {
+                let span = self.span;
+                self.bump();
+                match (allow_restricted, vis) {
+                    (true, vis) => Ok(vis),
+                    (false, Visibility::Restricted { .. }) => Err(
+                        self.span_fatal(span, "`pub(..)` are not valid in this position")
+                    ),
+                    (false, vis) => Ok(vis),
+                }
+            } else {
+                Ok(Visibility::Inherited)
+            }
         } else if !allow_restricted || !self.eat(&token::OpenDelim(token::Paren)) {
             Ok(Visibility::Public)
         } else if self.eat_keyword(keywords::Crate) {
